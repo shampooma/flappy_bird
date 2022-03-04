@@ -6,13 +6,39 @@ public class Level : MonoBehaviour
 {
     private const float PIPE_WIDTH = 1f;
     private const float SCENE_HEIGHT = 20f;
+    private const float PIPE_MOVE_SPEED = 3f;
+    private const float PIPE_DESTROY_POSITION_X = -20f;
 
-    private void CreateGapPipes(float gapSize, float gapPositionY, float positionX) {
-        CreatePipe(SCENE_HEIGHT/2 + gapPositionY - gapSize/2, positionX, true);
-        CreatePipe(SCENE_HEIGHT/2 - gapPositionY - gapSize/2, positionX, false);
+    private List<Transform> pipePairList;
+
+    private void PipeMovement() {
+        for (int i = 0; i < pipePairList.Count; i++) {
+            pipePairList[i].position += new Vector3(-1, 0, 0) * PIPE_MOVE_SPEED * Time.deltaTime;
+
+            if (pipePairList[i].position[0] < PIPE_DESTROY_POSITION_X) {
+                Destroy(pipePairList[i].gameObject);
+                Debug.Log("wow");
+                pipePairList.Remove(pipePairList[i]);
+                i--;
+            }
+        }
     }
 
-    private void CreatePipe(float height, float xposition, bool onBottom) {
+    private void CreateGapPipes(float gapSize, float gapPositionY, float positionX) {
+        GameObject pipePair = new GameObject("pipePair");
+
+        (Transform bottomPipeBody, Transform bottomPipeHead) = CreatePipe(SCENE_HEIGHT/2 + gapPositionY - gapSize/2, positionX, true);
+        (Transform topPipeBody, Transform topPipeHead) = CreatePipe(SCENE_HEIGHT/2 - gapPositionY - gapSize/2, positionX, false);
+
+        bottomPipeBody.parent = pipePair.transform;
+        bottomPipeHead.parent = pipePair.transform;
+        topPipeBody.parent = pipePair.transform;
+        topPipeHead.parent = pipePair.transform;
+
+        pipePairList.Add(pipePair.transform);
+    }
+
+    private (Transform, Transform) CreatePipe(float height, float xposition, bool onBottom) {
         // Make pipe body
         Transform pipeBody = Instantiate(GameAssets.GetInstance().pf_pipe_body);
 
@@ -42,15 +68,21 @@ public class Level : MonoBehaviour
         }
 
         pipeHead.position = new Vector2(xposition, pipeHeadPositionY);
+
+        return (pipeBody, pipeHead);
     }
 
-    void Start()
+    private void Awake() {
+        pipePairList = new List<Transform>();
+    }
+
+    private void Start()
     {
         CreateGapPipes(3f, 5f, 6f);
     }
 
-    void Update()
+    private void Update()
     {
-        
+        PipeMovement();
     }
 }
