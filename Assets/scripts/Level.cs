@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Level : MonoBehaviour
 {
@@ -14,15 +15,19 @@ public class Level : MonoBehaviour
   private const float GAP_SIZE_MAX = 20f;
   private const float GAP_SIZE_MIN = 10f;
   private const float TIME_TO_HIGHEST_LEVEL = 100f;
-
   private List<Transform> pipePairList;
   private float pipeMoveSpeed;
   private float gapSize;
   private int pipeSpawnedCount;
   private float gameRanTime;
   private float pipeMovedDistanceFromLastFrame;
+  private float gameOverTime;
 
+  public static Level instance;
   public static int score;
+  public static bool gameOver;
+  public delegate void GameOverEventDelegate();
+  public event GameOverEventDelegate GameOverEvent;
 
   private void PipeMovement()
   {
@@ -35,7 +40,8 @@ public class Level : MonoBehaviour
       pipePairList[i].position += new Vector3(-1, 0, 0) * pipeMoveSpeed * Time.deltaTime;
 
       // Check if pipePair is on left hand side of cat
-      if (pipePairOnCatRight && pipePairList[i].position[0] < Cat.instance.transform.position[0]) {
+      if (pipePairOnCatRight && pipePairList[i].position[0] < Cat.instance.transform.position[0])
+      {
         score++;
       }
 
@@ -111,14 +117,23 @@ public class Level : MonoBehaviour
     return (pipeBody, pipeHead);
   }
 
+  public static void OnGameOver()
+  {
+    gameOver = true;
+    instance.GameOverEvent?.Invoke();
+  }
+
   private void Awake()
   {
+    instance = this;
     score = 0;
     pipePairList = new List<Transform>();
     pipeMoveSpeed = PIPE_MOVE_SPEED_MIN;
     gapSize = GAP_SIZE_MAX;
     pipeSpawnedCount = 0;
     gameRanTime = 0;
+    gameOver = false;
+    gameOverTime = -1;
   }
 
   private void Start()
@@ -127,29 +142,43 @@ public class Level : MonoBehaviour
 
   private void Update()
   {
-    PipeMovement();
-
-    gameRanTime += float.IsInfinity(gameRanTime + Time.deltaTime) ? 0 : Time.deltaTime;
-    pipeMovedDistanceFromLastFrame += pipeMoveSpeed * Time.deltaTime;
-
-    // Adjustment for level
-    if (gameRanTime >= TIME_TO_HIGHEST_LEVEL)
+    if (gameOver)
     {
-      pipeMoveSpeed = PIPE_MOVE_SPEED_MAX;
-      gapSize = GAP_SIZE_MIN;
+      gameOverTime += Time.deltaTime;
+
+      if (gameOverTime >= 1)
+      {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+      }
+
+      return;
     }
     else
     {
-      pipeMoveSpeed = PIPE_MOVE_SPEED_MIN + (PIPE_MOVE_SPEED_MAX-PIPE_MOVE_SPEED_MIN) * (gameRanTime/TIME_TO_HIGHEST_LEVEL);
-      gapSize = GAP_SIZE_MAX - (GAP_SIZE_MAX-GAP_SIZE_MIN) * (gameRanTime/TIME_TO_HIGHEST_LEVEL);
-    }
+      PipeMovement();
 
-    // Spawn pipe
-    if (pipeMovedDistanceFromLastFrame >= PIPE_SPAWN_INTERVAL_DISTANCE)
-    {
-      CreateGapPipes(gapSize, Random.Range(-10 + gapSize / 2, 10 - gapSize / 2), PIPE_SPAWN_POSITION_X);
+      gameRanTime += float.IsInfinity(gameRanTime + Time.deltaTime) ? 0 : Time.deltaTime;
+      pipeMovedDistanceFromLastFrame += pipeMoveSpeed * Time.deltaTime;
 
-      pipeMovedDistanceFromLastFrame -= PIPE_SPAWN_INTERVAL_DISTANCE;
+      // Adjustment for level
+      if (gameRanTime >= TIME_TO_HIGHEST_LEVEL)
+      {
+        pipeMoveSpeed = PIPE_MOVE_SPEED_MAX;
+        gapSize = GAP_SIZE_MIN;
+      }
+      else
+      {
+        pipeMoveSpeed = PIPE_MOVE_SPEED_MIN + (PIPE_MOVE_SPEED_MAX - PIPE_MOVE_SPEED_MIN) * (gameRanTime / TIME_TO_HIGHEST_LEVEL);
+        gapSize = GAP_SIZE_MAX - (GAP_SIZE_MAX - GAP_SIZE_MIN) * (gameRanTime / TIME_TO_HIGHEST_LEVEL);
+      }
+
+      // Spawn pipe
+      if (pipeMovedDistanceFromLastFrame >= PIPE_SPAWN_INTERVAL_DISTANCE)
+      {
+        CreateGapPipes(gapSize, Random.Range(-10 + gapSize / 2, 10 - gapSize / 2), PIPE_SPAWN_POSITION_X);
+
+        pipeMovedDistanceFromLastFrame -= PIPE_SPAWN_INTERVAL_DISTANCE;
+      }
     }
   }
 }
