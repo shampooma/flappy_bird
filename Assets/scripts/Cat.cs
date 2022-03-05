@@ -6,15 +6,17 @@ public class Cat : MonoBehaviour
 {
     private const float JUMP_AMOUNT = 20f;
     private Rigidbody2D CatRigidbody2D;
+    public static Cat instance;
 
     private void Awake() {
         CatRigidbody2D = GetComponent<Rigidbody2D>();
+        instance = this;
     }
 
     // Start is called before the first frame update
     private void Start()
     {
-        
+
     }
 
     // Update is called once per frame

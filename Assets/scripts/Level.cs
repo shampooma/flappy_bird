@@ -22,12 +22,24 @@ public class Level : MonoBehaviour
   private float gameRanTime;
   private float pipeMovedDistanceFromLastFrame;
 
+  public static int score;
+
   private void PipeMovement()
   {
     for (int i = 0; i < pipePairList.Count; i++)
     {
+      // Check if pipePair is on right hand side of cat
+      bool pipePairOnCatRight = pipePairList[i].position[0] >= Cat.instance.transform.position[0];
+
+      // Move pipePair
       pipePairList[i].position += new Vector3(-1, 0, 0) * pipeMoveSpeed * Time.deltaTime;
 
+      // Check if pipePair is on left hand side of cat
+      if (pipePairOnCatRight && pipePairList[i].position[0] < Cat.instance.transform.position[0]) {
+        score++;
+      }
+
+      // Remove pipePair
       if (pipePairList[i].position[0] < PIPE_DESTROY_POSITION_X)
       {
         Destroy(pipePairList[i].gameObject);
@@ -101,6 +113,7 @@ public class Level : MonoBehaviour
 
   private void Awake()
   {
+    score = 0;
     pipePairList = new List<Transform>();
     pipeMoveSpeed = PIPE_MOVE_SPEED_MIN;
     gapSize = GAP_SIZE_MAX;
